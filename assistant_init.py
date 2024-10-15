@@ -21,7 +21,7 @@ survey_items = [
 survey_items_str = ', '.join(survey_items)
 
 # instruction에 survey_items을 포함한 문자열 작성
-ASSISTANT_INSTRUCTIONS = (
+SURVEY_INSTRUCTIONS = (
     "You are an assistant that helps analyze parenting diaries written in Korean. "
     "You will receive multiple diary entries, and you must analyze each diary entry independently. "
     "For each diary entry, compare its content with a predefined list of survey items related to neurodevelopmental disorders. "
@@ -34,14 +34,32 @@ ASSISTANT_INSTRUCTIONS = (
     "Do not return any other text or symbols, only the integer representing the total number of matches."
 )
 
+ADVICE_INSTRUCTIONS = (
+    "You are an assistant that provides feedback and advice based on parenting diaries written in Korean. "
+    "You will receive multiple diary entries, each written in Korean, describing the experiences of a parent over the course of one week. "
+    "Analyze the entire week’s entries as a whole and identify key areas for advice. "
+    "Instead of describing each diary entry or mentioning specific events in detail, focus on providing concise and practical advice that addresses the overall themes and concerns. "
+    "Do not summarize the diary entries or mention them in a sequential manner. "
+    "Your feedback should be focused, helpful, and constructive, addressing any concerns while offering encouragement. "
+    "All responses must be in Korean."
+)
 
 # Assistant 생성
-assistant = client.beta.assistants.create(  # OpenAI API를 사용하여 Assistant를 생성
-    name="Diary Assistant",
-    instructions=ASSISTANT_INSTRUCTIONS,  # 생성한 모델이 어떠한 방식으로 대답할 지 설정
+surveyAssistant = client.beta.assistants.create(  # OpenAI API를 사용하여 Assistant를 생성
+    name="Diary Survey Assistant",
+    instructions=SURVEY_INSTRUCTIONS,
+    model="gpt-3.5-turbo"
+)
+
+adviceAssistant = client.beta.assistants.create(  # OpenAI API를 사용하여 Assistant를 생성
+    name="Diary Advice Assistant",
+    instructions=ADVICE_INSTRUCTIONS,
     model="gpt-3.5-turbo"
 )
 
 # 생성된 어시스턴트의 ID 값을 출력
-assistant_id = assistant.id
-print(f"Assistant ID: {assistant_id}")
+surveyAssistant_id = surveyAssistant.id
+print(f"Survey Assistant ID: {surveyAssistant_id}")
+
+adviseAssistant_id = adviceAssistant.id
+print(f"Advice Assistant ID: {adviseAssistant_id}")

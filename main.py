@@ -14,7 +14,8 @@ load_dotenv()
 
 # OpenAI API 키 설정 (환경 변수로 관리하는 것이 좋음)
 API_KEY = os.getenv("OPENAI_API_KEY")
-ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
+SURVEY_ASSISTANT_ID = os.getenv("OPENAI_SURVEY_ASSISTANT_ID")
+ADVICE_ASSISTANT_ID = os.getenv("OPENAI_ADVICE_ASSISTANT_ID")
 client = OpenAI(api_key=API_KEY)
 
 
@@ -26,7 +27,7 @@ class DiaryRequest(BaseModel):
 async def poll_run_async(run, thread):
     while run.status != "completed":
         # 디버깅용 출력
-        print(f"Polling run: {run.status}")
+        #print(f"Polling run: {run.status}")
         run = client.beta.threads.runs.retrieve(
             thread_id=thread.id,
             run_id=run.id
@@ -41,7 +42,7 @@ async def create_run_async(thread_id, assistant_id):
         assistant_id=assistant_id,
     )
     # 디버깅용 출력
-    print(f"Run created: {run.id} with status {run.status}")
+    #print(f"Run created: {run.id} with status {run.status}")
     return run
 
 
@@ -59,7 +60,7 @@ async def analyze_diary(request: DiaryRequest):
     try:
         # 새로운 thread 생성 (하나의 스레드에서 모든 일기 처리)
         thread = client.beta.threads.create()
-        print(f"New thread created: {thread.id}")
+        #print(f"New thread created: {thread.id}")
 
         # 모든 일기에 대해 사용자 메시지 생성
         for diary_content in request.diary_content:
@@ -72,23 +73,23 @@ async def analyze_diary(request: DiaryRequest):
                 role="user",
                 content=diary_content
             )
-            print(f"User message created: {message.id}")
+            #print(f"User message created: {message.id}")
 
         # 비동기적으로 run 생성 및 상태 확인
-        run = await create_run_async(thread.id, ASSISTANT_ID)
+        run = await create_run_async(thread.id, SURVEY_ASSISTANT_ID)
         completed_run = await poll_run_async(run, thread)
 
         # 메시지 리스트에서 assistant의 모든 응답 찾기
         messages = client.beta.threads.messages.list(thread_id=thread.id)
         messages_list = list(messages)
-        print(f"Messages List: {messages_list}")  # 디버깅용 출력
+        #print(f"Messages List: {messages_list}")  # 디버깅용 출력
 
         # 모든 assistant 메시지의 일치 항목 수 합산
         total_matches = 0
         for message in messages_list:
             if message.role == "assistant":
                 # 디버깅용으로 message.content의 타입과 내용 출력
-                print(f"Message content type: {type(message.content)}, content: {message.content}")
+                #print(f"Message content type: {type(message.content)}, content: {message.content}")
 
                 if isinstance(message.content, list):
                     for block in message.content:
@@ -97,7 +98,7 @@ async def analyze_diary(request: DiaryRequest):
                         # block이 올바른 구조인지 확인 후 처리
                         if hasattr(block, 'text') and hasattr(block.text, 'value'):
                             value = block.text.value
-                            print(f"Extracted value: {value}")  # 추출된 값 출력
+                            #print(f"Extracted value: {value}")  # 추출된 값 출력
                             try:
                                 matches = int(value.strip())
                                 total_matches += matches
@@ -107,6 +108,50 @@ async def analyze_diary(request: DiaryRequest):
         # 스레드를 삭제하고 결과 반환
         await delete_thread(thread.id)
         return {"total_matches": total_matches}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# 육아 조언에 대한 API 엔드포인트
+@app.post("/give_advice/")
+async def give_advice(request: DiaryRequest):
+    try:
+        # 새로운 thread 생성 (하나의 스레드에서 모든 일기 처리)
+        thread = client.beta.threads.create()
+        #print(f"New thread created: {thread.id}")
+
+        # 모든 일기에 대해 사용자 메시지 생성
+        for diary_content in request.diary_content:
+            if not diary_content:
+                raise HTTPException(status_code=400, detail="Diary content cannot be empty")
+
+            # 사용자 메시지 생성
+            message = client.beta.threads.messages.create(
+                thread_id=thread.id,
+                role="user",
+                content=diary_content
+            )
+            #print(f"User message created: {message.id}")
+
+        # 비동기적으로 run 생성 및 상태 확인
+        run = await create_run_async(thread.id, ADVICE_ASSISTANT_ID)
+        completed_run = await poll_run_async(run, thread)
+
+        # 메시지 리스트에서 assistant의 모든 응답 찾기
+        messages = client.beta.threads.messages.list(thread_id=thread.id)
+        messages_list = list(messages)
+
+        # 모든 assistant 메시지에서 text value 값만 추출
+        advice_responses = []
+        for message in messages_list:
+            if message.role == "assistant" and isinstance(message.content, list):
+                for block in message.content:
+                    advice_responses.append(block.text.value)
+
+        # 스레드를 삭제하고 결과 반환
+        await delete_thread(thread.id)
+        return {"advice_responses": advice_responses}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -48,7 +48,8 @@ ADVICE_INSTRUCTIONS = (
 surveyAssistant = client.beta.assistants.create(  # OpenAI API를 사용하여 Assistant를 생성
     name="Diary Survey Assistant",
     instructions=SURVEY_INSTRUCTIONS,
-    model="gpt-3.5-turbo"
+    model="gpt-4o",
+    tools=[{"type": "file_search"}],
 )
 
 adviceAssistant = client.beta.assistants.create(  # OpenAI API를 사용하여 Assistant를 생성
@@ -63,3 +64,18 @@ print(f"Survey Assistant ID: {surveyAssistant_id}")
 
 adviseAssistant_id = adviceAssistant.id
 print(f"Advice Assistant ID: {adviseAssistant_id}")
+
+# RAG 용 Vector Store 생성 (file search)
+# vector_store = client.beta.vector_stores.create(name="survey file")
+# FILE_PATH = os.environ.get("FILE_PATH")
+# file_paths = [FILE_PATH]
+# file_streams = [open(path, "rb") for path in file_paths]
+# file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+#     vector_store_id=vector_store.id,
+#     files=file_streams
+# )
+#
+# surveyAssistant = client.beta.assistants.update(
+#     assistant_id=surveyAssistant_id,
+#     tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+# )

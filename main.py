@@ -160,7 +160,7 @@ async def give_advice(request: DiaryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/upload/")
+@app.post("/analysisVideo")
 async def upload_file(file: UploadFile = File(...)):
     upload_path = "upload"
 
@@ -173,4 +173,4 @@ async def upload_file(file: UploadFile = File(...)):
 
     check_video(upload_path + '/' + file.filename)
 
-    return {"filename": file.filename}
+    return {"result": file.filename}

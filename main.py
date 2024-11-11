@@ -8,6 +8,7 @@ from typing import List
 from dotenv import load_dotenv
 
 from CheckVideo import check_video
+from Opticalflow import getvideoresult
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI()
@@ -173,4 +174,4 @@ async def upload_file(file: UploadFile = File(...)):
 
     check_video(upload_path + '/' + file.filename)
 
-    return {"result": file.filename}
+    return getvideoresult(upload_path+'/'+file.filename)
